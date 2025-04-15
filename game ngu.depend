@@ -1,0 +1,17 @@
+# depslib dependency file v1.0
+1744629106 source:c:\codeblocks\sex\game ngu\main.cpp
+	"CommonFunc.h"
+
+1744604312 source:c:\codeblocks\sex\game ngu\commonfunc.cpp
+	"CommonFunc.h"
+
+1744629231 c:\codeblocks\sex\game ngu\commonfunc.h
+	<iostream>
+	<algorithm>
+	<vector>
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_mixer.h>
+	<SDL_ttf.h>
+	<cmath>
+
