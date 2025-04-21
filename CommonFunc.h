@@ -29,6 +29,7 @@ static bool is_hitted = false;
 static bool stop_game = false;
 static bool boss_dead_facing_right = true;
 static bool boss_dead_direction_locked = false;
+static bool end_game = false;
 
 extern bool is_fighting;
 
@@ -46,7 +47,8 @@ struct Player
 };
 
 void Boss_hitted(SDL_Rect& boss_dsrect, SDL_Rect& dsrect_, SDL_Texture*& tex_boss_main,
-                 SDL_Texture* boss_hitted_left, SDL_Texture* boss_hitted_right, bool& is_hitting, int& status_);
+                 SDL_Texture* boss_hitted_left, SDL_Texture* boss_hitted_right, bool& is_hitting, int& status_,
+                 float& playerKi);
 
 SDL_Texture* LoadTex(SDL_Renderer* screen, const char* file);
 
@@ -159,7 +161,8 @@ void Kamehameha(SDL_Rect& kame_rect_, bool& is_kame_,
                 SDL_Renderer* screen, SDL_Texture* kameha_right, SDL_Texture* kameha_left,
                 int& status_, SDL_Texture*& tex_boss_main, SDL_Rect& boss_srect, SDL_Rect& boss_dsrect,
                 SDL_Texture* boss_hitted_left, SDL_Texture* boss_hitted_right, bool& boss_is_hitted,
-                float& bossHealth, Mix_Chunk* kameha_sound);
+                float& bossHealth, Mix_Chunk* kameha_sound, float& playerKi,
+                float& boss2_2_Health, float& boss2_3_Health, SDL_Rect boss2_2_dsrect, SDL_Rect boss2_3_dsrect);
 
 void renderHealthBar(SDL_Renderer* screen, int x, int y, int width, int height, float& currentHealth, int maxHealth);
 

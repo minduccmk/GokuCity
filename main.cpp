@@ -3,6 +3,8 @@
 int status_;
 int boss_status_;
 int width_left, width_right, height_left, height_right;
+int elapsed;
+int remaining;
 
 //boss
 
@@ -36,6 +38,12 @@ int main(int argc, char* argv[])
     Mix_Chunk* boss_skill_sound = Mix_LoadWAV("boss_skill.wav");
     Mix_Chunk* afterPlayerDie = Mix_LoadWAV("afterPlayerDie.wav");
     Mix_Chunk* winning = Mix_LoadWAV("winning.wav");
+    Mix_Chunk* superSaijan = Mix_LoadWAV("screamming.wav");
+    Mix_Chunk* sound_game = Mix_LoadWAV("sound_game.wav");
+
+    Mix_PlayChannel(-1, sound_game, -1);
+
+    if (!sound_game) return -1;
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) return -1;
 
@@ -48,7 +56,7 @@ int main(int argc, char* argv[])
                               SDL_WINDOWPOS_CENTERED,
                               SDL_WINDOWPOS_CENTERED,
                               1200,
-                              911,
+                              611,
                               SDL_WINDOW_SHOWN);
     g_screen = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (g_screen == NULL) return -1;
@@ -72,12 +80,23 @@ int main(int argc, char* argv[])
     SDL_Surface* textSurface_lose = TTF_RenderText_Solid(font, "DEFEATED", textColor);
     SDL_Texture* textTexture_lose = SDL_CreateTextureFromSurface(g_screen, textSurface_lose);
 
-    SDL_Rect textRect = {600, 300, textSurface->w, textSurface->h};
+    //best_score
+    SDL_Surface* endSurface = TTF_RenderText_Solid(font, "Best Time: ", textColor);
+    SDL_Texture* endTexture = SDL_CreateTextureFromSurface(g_screen, endSurface);
+
+    SDL_Rect textRect = {500, 200, 250, 100};
+    SDL_Rect endRect = {550, 330, endSurface->w, endSurface->h};
 
     //Menu
     SDL_Texture* Menu = LoadTex(g_screen, "img//Menu.png");
 
-    SDL_Rect Menu_dsrect = {200, 300, 800, 494};
+    SDL_Rect Menu_dsrect = {425, 80, 360, 500};
+
+    SDL_Texture* pause = LoadTex(g_screen, "img//pause.png");
+    SDL_Rect pause_dsrect = {1135, 0, 65, 66};
+
+    SDL_Texture* restart = LoadTex(g_screen, "img//restart.png");
+    SDL_Rect restart_dsrect = {550, 380, 139, 142};
 
     //tao hinh anh nhan vat o trang thai ban dau
 
@@ -128,6 +147,14 @@ int main(int argc, char* argv[])
     SDL_Texture* kameha_right = LoadTex(g_screen, "img//kameha_right.png");
     SDL_Texture* kameha_left = LoadTex(g_screen, "img//kameha_left.png");
 
+    // boss con
+    SDL_Texture* boss2_skill1_right = LoadTex(g_screen, "img//boss2_skill1_right.png");
+    SDL_Texture* boss2_skill1_left = LoadTex(g_screen, "img//boss2_skill1_left.png");
+    SDL_Texture* boss2_death_left = LoadTex(g_screen, "img//boss2_death_left.png");
+    SDL_Texture* boss2_death_right = LoadTex(g_screen, "img//boss2_death_right.png");
+    SDL_Texture* boss2_stand_right = LoadTex(g_screen, "img//boss2_stand_right.png");
+    SDL_Texture* boss2_stand_left = LoadTex(g_screen, "img//boss2_stand_left.png");
+
     //tao animation
 
     SDL_Texture* frame_sheet_right_ = LoadTex(g_screen, "img//danhquaphai.png");
@@ -151,10 +178,13 @@ int main(int argc, char* argv[])
     int playerMaxHealth = 1000;
     float bossHealth = 3000;
     int bossMaxHealth = 3000;
+    float playerKi = 0;
+    int playerMaxKi = 1000;
+    int stop_game_count = 0;
 
-    SDL_Rect srect_ = {0, 0, 88, 92};
+    SDL_Rect srect_ = {0, 0, 80, 98};
 
-    SDL_Rect dsrect_ = {0, 411, 120, 120};
+    SDL_Rect dsrect_ = {0, 238, 120, 120};
 
     //kamehameha
     SDL_Rect kame_srect_ = {0, 0, 57, 90};
@@ -184,7 +214,7 @@ int main(int argc, char* argv[])
     SDL_Rect plane1_dsrect = {500, 0, 100, 100};
     SDL_Rect plane2_dsrect = {700, 0, 150, 100};
 
-    SDL_Rect boss_srect_ = {0, 0, 180, 200};
+    SDL_Rect boss_srect_ = {0, 0, 80, 98};
     SDL_Rect boss_dsrect_ = {1050, 350, 180, 219};
 
     //cho ki nang cua boss
@@ -205,10 +235,13 @@ int main(int argc, char* argv[])
     Uint32 boss_time_skill = SDL_GetTicks();
 
     // bo dem thoi gian
-    Uint32 startTime = SDL_GetTicks();
     int Timecount = 300;
+    int restartTime = 0;
+    int channel = -1;
+    int sound_game_channel = -1;
 
     //end game
+    int afterTime = 0;
     //player
     SDL_Texture* player_end_game_right = LoadTex(g_screen, "img//player_end_game_right.png");
     SDL_Texture* player_end_game_left = LoadTex(g_screen, "img//player_end_game_left.png");
@@ -216,17 +249,45 @@ int main(int argc, char* argv[])
 
     int player_end_game = 0;
     Uint32 main_end_game = SDL_GetTicks();
+    //dem thoi gian cho bo dem thoi gian
+    Uint32 startTime = SDL_GetTicks();
+    int skipTime;
 
+    int best_time = 300;
     //boss
     SDL_Texture* boss_end_game_right = LoadTex(g_screen, "img//boss_end_game_right.png");
     SDL_Texture* boss_end_game_left = LoadTex(g_screen, "img//boss_end_game_left.png");
-    SDL_Rect boss_srect_end = {0, 0, 150, 219};
+    SDL_Rect boss_srect_end = {0, 0, 88, 94};
 
     int boss_end_game = 0;
 
-    //xu ly tele
+    // xu ly boss nho
 
+    SDL_Texture* boss2_1 = boss2_stand_right;
+    SDL_Texture* boss2_2 = boss2_stand_right;
+    SDL_Texture* boss2_3 = boss2_stand_left;
 
+    SDL_Rect boss2_common_rect = {0, 0, 32, 31}; // trang thai dung
+
+    SDL_Rect boss2_3_dsrect = {1100, 478, 100, 80};
+    SDL_Rect boss2_2_dsrect = {0, 280, 100, 80};
+
+    SDL_Rect boss2_3_dsrect_after = {100, 478, 1100, 80};
+    SDL_Rect boss2_2_dsrect_after = {0, 280, 1100, 80};
+
+    int boss2_frame_common = 0;
+    Uint32 standTime = SDL_GetTicks();
+    Uint32 after_standTime = SDL_GetTicks();
+    bool check_boss2 = false;
+    SDL_Rect boss2_3_light = {100, 510, 1100, 8};
+    SDL_Rect boss2_2_light = {0, 312, 1100, 8};
+
+    float boss2_3_Health = 1000;
+    int boss2_MaxHealth = 1000;
+    float boss2_2_Health = 1000;
+    int count_bossdie = 0;
+    bool boss2_2_dead_direction_locked = false;
+    bool boss2_3_dead_direction_locked = false;
 
     // vong lap quan trong
     while (!is_quit)
@@ -240,6 +301,9 @@ int main(int argc, char* argv[])
             else if ((event.type == SDL_KEYDOWN) && (!is_skilling) && (!is_kame_))
             {
 
+                if (event.key.keysym.sym == SDLK_ESCAPE)
+                    is_quit = true;
+
                 if (event.key.keysym.sym == SDLK_SPACE)
 
                     stop_game = true;
@@ -248,54 +312,139 @@ int main(int argc, char* argv[])
 
                     stop_game = false;
 
-                if (event.key.keysym.sym == SDLK_ESCAPE)
-                    is_quit = true;
+                if (event.key.keysym.sym == SDLK_x)
+                   {
+                        is_fighting = false;
+                        is_hitting = false;
+                        main_is_hitting = false;
+                        is_skilling = false;
+                        boss_is_hitted = false;
+                        is_fight = false;
+                        main_boss_hit = false;
+                        skill_pos_set = false;
+                        kame_pos_set = false;
+                        is_kame_ = false;
+                        is_hitted = false;
+                        stop_game = false;
+                        boss_dead_facing_right = true;
+                        boss_dead_direction_locked = false;
+                        countt = 0;
+                        boss_end_game = 0;
+                        dem = 0;
+
+                        end_game = false;
+
+    frame_right = 0;
+    frame_left = 0;
+
+    boss_frame_ = 0;
+    boss_frame_fight = 0;
+
+    skill_frame_ = 0; //frame ki nang
+
+    kame_frame = 0;
+    chuong_frame = 0;
+
+    playerHealth = 1000;
+    bossHealth = 3000;
+
+    srect_.x = 0;   srect_.y = 0;
+
+    dsrect_.x = 0;  dsrect_.y = 238;
+
+    tex_main = tex_main_right;
+
+    //kamehameha
+    kame_srect_.x = 0; kame_srect_.y = 0;
+
+    kame_dsrect_.x = 0; kame_dsrect_.y = 0;
+
+    chuong_srect_.x = 0;  chuong_srect_.y = 0;
+
+    chuong_dsrect_.x = 0; chuong_dsrect_.y = 0;
+
+    inMenu = true;
+    is_quit = false;
+    holding = false;
+
+    //boss1
+    player.x = 0 ; player.y = 300;
+    boss1.x = 1050;     boss1.y = 350;
+    //khoi tao gia tri
+    plane1.x = 500; plane1.y = 0;
+    plane2.x = 700; plane2.y = 0;
+
+    plane1_dsrect.x = 500; plane1_dsrect.y = 0;
+    plane2_dsrect.x = 700; plane2_dsrect.y = 0;
+
+    boss_srect_.x = 0;      boss_srect_.y = 0;
+    boss_dsrect_.x = 1050;  boss_dsrect_.y = 350;
+
+    //cho ki nang cua boss
+    boss_skill_rect.x = 0;     boss_skill_rect.y = 0;
+    boss_skill_dsrect.x = 0;    boss_skill_dsrect.y = 0;
+
+    player_srect_end.x = 0;     player_srect_end.y = 0;
+
+    player_end_game = 0;
+    boss_srect_end.x = 0;   boss_srect_end.y = 0;
+
+    boss_end_game = 0;
+
+    elapsed = 0;
+    skipTime = 0;
+
+    boss2_2_dead_direction_locked = false;
+    boss2_3_dead_direction_locked = false;
+    count_bossdie = 0;
+    boss2_2_Health = 1000;
+    boss2_3_Health = 1000;
+    check_boss2 = false;
+    playerKi = 0;
+
+    restartTime += (Timecount - remaining) ;
+
+    if (restartTime > Timecount) restartTime = Timecount ;
+
+    bullets.clear();
+    plane1_bullet.clear();
+    plane2_bullet.clear();
+                   }
 
                     if ( playerHealth != 0)
                     {
-                        const Uint8* state = SDL_GetKeyboardState(NULL);
-
-                        bool only_w_pressed = state[SDL_SCANCODE_W] &&
-                      !state[SDL_SCANCODE_A] &&
-                      !state[SDL_SCANCODE_S] &&
-                      !state[SDL_SCANCODE_D];
-
-                      bool only_s_pressed = !state[SDL_SCANCODE_W] &&
-                      !state[SDL_SCANCODE_A] &&
-                      state[SDL_SCANCODE_S] &&
-                      !state[SDL_SCANCODE_D];
-
-if (state[SDL_SCANCODE_D]) {
-    status_ = WALK_RIGHT;
-    input_type_.right_ = 1;
-    tex_main = tex_move_right;
-    dsrect_.x += speed;
-    if (dsrect_.x > 1200 - 150) dsrect_.x = 1200 - 150;
-}
-
-if (state[SDL_SCANCODE_A]) {
-    status_ = WALK_LEFT;
-    input_type_.left_ = 1;
-    tex_main = tex_move_left;
-    dsrect_.x -= speed;
-    if (dsrect_.x < 0) dsrect_.x = 0;
-}
-
-if (state[SDL_SCANCODE_W]) {
-    if (tex_main == tex_move_left) tex_main = tex_main_left;
-    else if (tex_main == tex_move_right) tex_main = tex_main_right;
-    dsrect_.y -= speed;
-    if (dsrect_.y < 411) dsrect_.y = 411;
-}
-
-if (state[SDL_SCANCODE_S]) {
-    if (tex_main == tex_move_left) tex_main = tex_main_left;
-    else if (tex_main == tex_move_right) tex_main = tex_main_right;
-    dsrect_.y += speed;
-    if (dsrect_.y > 911 - 150) dsrect_.y = 911 - 150;
-}
-switch(event.key.keysym.sym)
+                        switch(event.key.keysym.sym)
 {
+                    case SDLK_d:
+                        status_ = WALK_RIGHT;
+                        input_type_.right_ = 1;
+                        tex_main = tex_move_right;
+                        dsrect_.x += speed;
+                        if (dsrect_.x > 1200 - 150) dsrect_.x = 1200 - 150;
+                        break;
+
+                    case SDLK_a:
+                        status_ = WALK_LEFT;
+                        input_type_.left_ = 1;
+                        tex_main = tex_move_left;
+                        dsrect_.x -= speed;
+                        if (dsrect_.x < 0) dsrect_.x = 0;
+                        break;
+
+                    case SDLK_w:
+                        if (tex_main == tex_move_left) tex_main = tex_main_left;
+                        else if (tex_main == tex_move_right) tex_main = tex_main_right;
+                        dsrect_.y -= 15;
+                        if (dsrect_.y < 238) dsrect_.y = 238;
+                        break;
+
+                    case SDLK_s:
+                        if (tex_main == tex_move_left) tex_main = tex_main_left;
+                        else if (tex_main == tex_move_right) tex_main = tex_main_right;
+                        dsrect_.y += 15;
+                        if (dsrect_.y > 611 - 150) dsrect_.y = 611 - 150;
+                        break;
+
                     case SDLK_j:
                         is_fight = true;
 
@@ -326,7 +475,12 @@ switch(event.key.keysym.sym)
                             if (bossHealth != 0)
                             {
                                 Boss_hitted(boss_dsrect_, dsrect_,tex_boss_main_, boss_hitted_left, boss_hitted_right,
-                                        is_hitting, status_);
+                                        is_hitting, status_, playerKi);
+                            }
+
+                            if ((boss2_3_Health != 0) && (SDL_HasIntersection(&dsrect_, &boss2_3_dsrect)))
+                            {
+                                boss2_3_Health -= 50;
                             }
 
                             if (is_hitting)
@@ -363,7 +517,12 @@ switch(event.key.keysym.sym)
                             if (bossHealth != 0)
                             {
                                 Boss_hitted(boss_dsrect_, dsrect_,tex_boss_main_, boss_hitted_left, boss_hitted_right,
-                                        is_hitting, status_);
+                                        is_hitting, status_, playerKi);
+                            }
+
+                            if ((boss2_2_Health != 0) && (SDL_HasIntersection(&dsrect_, &boss2_2_dsrect)))
+                            {
+                                boss2_2_Health -= 50;
                             }
 
                             if (is_hitting)
@@ -381,8 +540,8 @@ switch(event.key.keysym.sym)
                             if (!holding)
                             {
                                 tex_main = tex_tele;
-                                if (status_ == WALK_RIGHT)  dsrect_.x += 12 * speed;
-                                else dsrect_.x -= 12 * speed;
+                                if (status_ == WALK_RIGHT)  dsrect_.x += 30 * speed;
+                                else dsrect_.x -= 30 * speed;
                             }
 
                             if (dsrect_.x < 0) dsrect_.x = 0;
@@ -397,17 +556,25 @@ switch(event.key.keysym.sym)
                     case SDLK_o:
                         if (status_ == WALK_LEFT) tex_main = tex_ssj_left;
                         else tex_main = tex_ssj_right;
+
+                        if (channel == -1)
+                        {
+                            channel = Mix_PlayChannel(-1, superSaijan, -1);
+                        }
+                        playerKi += 5;
                         break;
 
-                    case SDLK_i:
-                        is_kame_ = true;
+                        case SDLK_i:
+                            if (playerKi == playerMaxKi)
+                            {
+                                is_kame_ = true;
 
                         kame_time = SDL_GetTicks();
 
                         is_fight = false;
                         is_hitted = false;
                         break;
-
+                            }
                     }
                 }
             }
@@ -448,6 +615,12 @@ switch(event.key.keysym.sym)
                 {
                     if (status_ == WALK_LEFT) tex_main = tex_main_left;
                     else tex_main = tex_main_right;
+
+                    if(channel != -1)
+                    {
+                        Mix_HaltChannel(channel);
+                        channel = -1;
+                    }
                 }
                 if(event.key.keysym.sym == SDLK_l)
                 {
@@ -461,9 +634,24 @@ switch(event.key.keysym.sym)
             player.y = dsrect_.y;
             }
 
-        if (stop_game)
+            if (!stop_game)
         {
+            Uint32 now = SDL_GetTicks();
 
+            skipTime = afterTime;
+            elapsed = (now - startTime) / 1000;
+            remaining = Timecount - elapsed + skipTime + restartTime;
+
+            if (remaining < 0) remaining = 0;
+
+        }
+        else if((stop_game) || (bossHealth == 0) || (playerHealth == 0))
+        {
+            Uint32 after = SDL_GetTicks();
+
+            afterTime = skipTime + (after - startTime - elapsed * 1000) / 1000;
+
+            std::cout << "thoi gian dung: " << afterTime << "           ";
             SDL_RenderCopy(g_screen, Menu, NULL, &Menu_dsrect);
 
             SDL_RenderPresent(g_screen);
@@ -480,7 +668,6 @@ switch(event.key.keysym.sym)
         Uint32 currentTime_Plane = SDL_GetTicks();
         Uint32 bul_deltaTime = currentTime_Plane - LastTime_plane;
         LastTime_plane = currentTime_Plane;
-
 
 if ((!is_hitting) && (bossHealth != 0)){
         boss1.BossMove(player, tex_boss_main_, g_screen, tex_boss1_right, tex_boss1_left, boss_is_hitted);
@@ -522,7 +709,7 @@ if ((!is_hitting) && (bossHealth != 0)){
             }
 
             Uint32 boss_currenttime = SDL_GetTicks();
-                 boss_srect_.x = (boss_frame_fight) * 180;
+                 boss_srect_.x = (boss_frame_fight) * 80;
             if (boss_currenttime > boss_time + 250)
                 {
                     boss_frame_fight = (boss_frame_fight + 1) % 3 ;
@@ -629,7 +816,8 @@ if ((!is_hitting) && (bossHealth != 0)){
         Kamehameha(kame_srect_, is_kame_, kame_time, kame_frame, kame_pos_set,
                    dsrect_, kame_dsrect_, chuong_srect_, chuong_dsrect_, chuong_frame,
                    g_screen, kameha_right, kameha_left, status_, tex_boss_main_, boss_srect_, boss_dsrect_,
-                   boss_hitted_left, boss_hitted_right, boss_is_hitted, bossHealth, kameha_sound);
+                   boss_hitted_left, boss_hitted_right, boss_is_hitted, bossHealth, kameha_sound, playerKi,
+                   boss2_2_Health, boss2_3_Health, boss2_2_dsrect, boss2_3_dsrect);
         if (status_ == WALK_RIGHT)
         {
             SDL_RenderCopy(g_screen, thedungchuong_right, &kame_srect_, &kame_dsrect_);
@@ -685,6 +873,84 @@ if ((is_skilling) && (bossHealth != 0))
         renderBullets_plane(g_screen, plane2_bullet);
         renderBullets(g_screen, bullets);
 
+        // xu ly boss nho
+
+
+        Uint32 this_time = SDL_GetTicks();
+
+        if (!check_boss2)
+        {
+            if (boss2_3_Health > 0)
+            {
+                boss2_3 = boss2_stand_left;
+            }
+
+            if (boss2_2_Health > 0)
+            {
+                boss2_2 = boss2_stand_right;
+            }
+
+            boss2_common_rect.x = boss2_frame_common * 32;
+            if (this_time > standTime + 500)
+                {
+                    boss2_frame_common = (boss2_frame_common + 1) % 2;
+                    standTime = this_time;
+                }
+        }
+
+
+        Uint32 after_this_time = SDL_GetTicks();
+
+        if (after_this_time > after_standTime + 5000)
+        {
+            if (boss2_3_Health > 0)
+            {
+                boss2_3 = boss2_skill1_right;
+            }
+
+            if (boss2_2_Health > 0)
+            {
+                boss2_2 = boss2_skill1_left;
+            }
+
+            check_boss2 = true;
+            after_standTime = after_this_time;
+        }
+
+        if ((after_this_time < after_standTime + 1500) && (check_boss2))
+        {
+            if (boss2_3_Health > 0)
+            {
+                SDL_RenderCopy(g_screen, boss2_3, NULL, &boss2_3_dsrect_after);
+                if (SDL_HasIntersection(&dsrect_, &boss2_3_light))
+                {
+                    playerHealth -= 0.5;
+                }
+            }
+
+            if (boss2_2_Health > 0)
+            {
+                SDL_RenderCopy(g_screen, boss2_2, NULL, &boss2_2_dsrect_after);
+                if (SDL_HasIntersection(&dsrect_, &boss2_2_light))
+                {
+                    playerHealth -= 0.5;
+                }
+            }
+        }
+        else
+        {
+            check_boss2 = false;
+            if (boss2_2_Health > 0)
+            {
+                SDL_RenderCopy(g_screen, boss2_2, &boss2_common_rect, &boss2_2_dsrect);
+            }
+
+            if (boss2_3_Health > 0)
+            {
+                SDL_RenderCopy(g_screen, boss2_3, &boss2_common_rect, &boss2_3_dsrect);
+            }
+        }
+
 
 //de cho boss di chuyen den nhan vat
 if (bossHealth != 0)
@@ -713,13 +979,32 @@ if (bossHealth != 0)
         {
             bossHealth = 0;
         }
+        if (boss2_2_Health < 0)
+        {
+            boss2_2_Health = 0;
+        }
+        if (boss2_3_Health < 0)
+        {
+            boss2_3_Health = 0;
+        }
         renderHealthBar(g_screen, dsrect_.x + 20, dsrect_.y - 10, 90, 5, playerHealth, playerMaxHealth);
         renderHealthBar(g_screen, boss_dsrect_.x + 20, boss_dsrect_.y - 10, 120, 5, bossHealth, bossMaxHealth);
+        renderHealthBar(g_screen, boss2_2_dsrect.x + 36, boss2_2_dsrect.y - 10, 32, 5, boss2_2_Health, boss2_MaxHealth);
+        renderHealthBar(g_screen, boss2_3_dsrect.x + 25, boss2_3_dsrect.y - 10, 32, 5, boss2_3_Health, boss2_MaxHealth);
+
+        if (playerKi > playerMaxKi)
+        {
+            playerKi = playerMaxKi;
+        }
+
+        renderKi(g_screen, dsrect_.x + 20, dsrect_.y - 15, 90, 5, playerKi, playerMaxKi);
 
         //cho phan end game
 
         if (playerHealth == 0)
         {
+            end_game = true;
+
             if (boss_dsrect_.x < dsrect_.x)
             {
                 tex_main = player_end_game_right;
@@ -745,17 +1030,19 @@ if (bossHealth != 0)
 
         if (bossHealth == 0)
         {
+
             if (!boss_dead_direction_locked)
             {
                 boss_dead_facing_right = boss_dsrect_.x < dsrect_.x;
                 boss_dead_direction_locked = true;
+                count_bossdie++; // dem 1 lan
             }
 
             tex_boss_main_ = boss_dead_facing_right ? boss_end_game_right : boss_end_game_left;
 
             Uint32 TakeTime = SDL_GetTicks();
 
-            boss_srect_end.x = boss_end_game * 150;
+            boss_srect_end.x = boss_end_game * 88;
             if (TakeTime > main_end_game + 700)
             {
                 boss_end_game++;
@@ -768,43 +1055,89 @@ if (bossHealth != 0)
             SDL_RenderCopy(g_screen, tex_boss_main_, &boss_srect_end, &boss_dsrect_);
         }
 
+        if (boss2_2_Health == 0)
+        {
+            if (!boss2_2_dead_direction_locked)
+            {
+                boss2_2 = boss2_death_right;
+                boss2_2_dead_direction_locked = true;
+                count_bossdie++;
+            }
+
+            SDL_RenderCopy(g_screen, boss2_2, NULL, &boss2_2_dsrect);
+        }
+
+        if (boss2_3_Health == 0)
+        {
+            if (!boss2_3_dead_direction_locked)
+            {
+                boss2_3 = boss2_death_left;
+                boss2_3_dead_direction_locked = true;
+                count_bossdie++;
+            }
+
+            SDL_RenderCopy(g_screen, boss2_3, NULL, &boss2_3_dsrect);
+        }
+
         SDL_RenderCopy(g_screen, plane1_tex, NULL, &plane1_dsrect);
         SDL_RenderCopy(g_screen, plane2_tex, NULL, &plane2_dsrect);
 
-            Uint32 now = SDL_GetTicks();
-
-            int elapsed = (now - startTime) / 1000;
-            int remaining = Timecount - elapsed;
-
-            if (remaining < 0) remaining = 0;
+// dem thoi gian choi
 
             std::string Timetext = std::to_string(remaining);
             SDL_Surface* Timesurface = TTF_RenderText_Solid(font, Timetext.c_str(), textColor);
             SDL_Texture* Timetexture = SDL_CreateTextureFromSurface(g_screen, Timesurface);
 
-            SDL_Rect Time_dsrect = {0, 911 - Timesurface->h, Timesurface->w, Timesurface->h};
-
+            SDL_Rect Time_dsrect = {0, 611 - Timesurface->h, Timesurface->w, Timesurface->h};
         SDL_RenderCopy(g_screen, Timetexture, NULL, &Time_dsrect);
 
-        if ((remaining != 0) && (bossHealth == 0))
+        if ((remaining != 0) && (count_bossdie == 3))
         {
+            if (best_time > (300 - remaining))
+            {
+                best_time = 300 - remaining;
+            }
+
+
+            // xuat time it nhat ra man hinh
+            std::string best_timetext = std::to_string(best_time);
+            SDL_Surface* best_timesurface = TTF_RenderText_Solid(font, best_timetext.c_str(), textColor);
+            SDL_Texture* best_timetexture = SDL_CreateTextureFromSurface(g_screen, best_timesurface);
+
+            SDL_Rect best_time_dsrect = {675, 330, best_timesurface->w, best_timesurface->h};
+
+        SDL_RenderCopy(g_screen, best_timetexture, NULL, &best_time_dsrect);
+
+            //
+            SDL_RenderCopy(g_screen, endTexture, NULL, &endRect);
             SDL_RenderCopy(g_screen, textTexture, NULL, &textRect);
+            SDL_RenderCopy(g_screen, restart, NULL, &restart_dsrect);
 
             Mix_PlayChannel(-1, winning, 0);
         }
-        else if ((remaining == 0) && (bossHealth != 0))
+        else if ((remaining == 0) && (count_bossdie != 3))
         {
             SDL_RenderCopy(g_screen, textTexture_lose, NULL, &textRect);
+            SDL_RenderCopy(g_screen, restart, NULL, &restart_dsrect);
 
             Mix_PlayChannel(-1, afterPlayerDie, 0);
         }
         else if (playerHealth == 0)
         {
             SDL_RenderCopy(g_screen, textTexture_lose, NULL, &textRect);
+            SDL_RenderCopy(g_screen, restart, NULL, &restart_dsrect);
 
             Mix_PlayChannel(-1, afterPlayerDie, 0);
         }
 
+        if (stop_game_count == 0)
+        {
+            stop_game = true;
+
+            stop_game_count++;
+        }
+
+        SDL_RenderCopy(g_screen, pause, NULL, &pause_dsrect);
         SDL_RenderPresent(g_screen);
     }
 

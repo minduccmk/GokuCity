@@ -3,7 +3,8 @@
 bool is_fighting = false;
 
 void Boss_hitted(SDL_Rect& boss_rect, SDL_Rect& player_rect, SDL_Texture*& tex_boss_main,
-                 SDL_Texture* hitted_left, SDL_Texture* hitted_right, bool& is_hitting,int& status_)
+                 SDL_Texture* hitted_left, SDL_Texture* hitted_right, bool& is_hitting,int& status_,
+                 float& playerKi)
 {
     // Kiểm tra va chạm (giả sử va chạm xảy ra khi hai hình chữ nhật giao nhau)
     if (SDL_HasIntersection(&boss_rect, &player_rect))
@@ -19,6 +20,8 @@ void Boss_hitted(SDL_Rect& boss_rect, SDL_Rect& player_rect, SDL_Texture*& tex_b
             tex_boss_main = hitted_right; // Boss ở bên trái, đối mặt phải
             is_hitting = true;
         }
+
+        playerKi += 10;
     }
     else
     {
@@ -139,8 +142,8 @@ void Boss::BossMovement(SDL_Rect& boss_srect_, SDL_Texture*& tex_boss_main,
         Uint32 currentTime = SDL_GetTicks();
         if (currentTime > LastTime + boss_animation_speed)
             {
-                frame_ = (frame_ + 1) % 8;
-                boss_srect_.x = frame_ * 180;
+                frame_ = (frame_ + 1) % 7;
+                boss_srect_.x = frame_ * 80;
                 LastTime = currentTime;
             }
     }
@@ -396,7 +399,8 @@ void Kamehameha(SDL_Rect& kame_rect_, bool& is_kame_,
                 SDL_Renderer* screen, SDL_Texture* kameha_right, SDL_Texture* kameha_left,
                 int& status_, SDL_Texture*& tex_boss_main, SDL_Rect& boss_srect, SDL_Rect& boss_dsrect,
                 SDL_Texture* boss_hitted_left, SDL_Texture* boss_hitted_right, bool& boss_is_hitted,
-                float& bossHealth, Mix_Chunk* kameha_sound)
+                float& bossHealth, Mix_Chunk* kameha_sound, float& playerKi,
+                float& boss2_2_Health, float& boss2_3_Health, SDL_Rect boss2_2_dsrect, SDL_Rect boss2_3_dsrect)
     {
         if (!kame_pos_set)
         {
@@ -447,7 +451,7 @@ void Kamehameha(SDL_Rect& kame_rect_, bool& is_kame_,
 
                     boss_is_hitted = true;
 
-                    bossHealth -= 0.2;
+                    bossHealth -= 2;
 
                     if (bossHealth != 0)
                     {
@@ -456,6 +460,15 @@ void Kamehameha(SDL_Rect& kame_rect_, bool& is_kame_,
 
                 }
 
+            if (SDL_HasIntersection(&boss2_2_dsrect, &chuong_dsrect_))
+            {
+                boss2_2_Health -= 2.5;
+            }
+
+            if (SDL_HasIntersection(&boss2_3_dsrect, &chuong_dsrect_))
+            {
+                boss2_3_Health -= 2.5;
+            }
 
             if (status_ == 0)
             {
@@ -486,6 +499,8 @@ void Kamehameha(SDL_Rect& kame_rect_, bool& is_kame_,
             boss_is_hitted = false;
 
         }
+
+        playerKi = 0;
 
         Mix_PlayChannel(-1, kameha_sound, 0);
     }
@@ -521,7 +536,7 @@ void renderKi(SDL_Renderer* screen, int x, int y, int width, int height, float& 
                         (int)((width - 2) * KiPercent),
                         height - 2};
 
-    SDL_SetRenderDrawColor(screen, 152, 245, 245, 255);
+    SDL_SetRenderDrawColor(screen, 0, 255, 255, 255);
     SDL_RenderFillRect(screen, &KiRect);
 }
 
