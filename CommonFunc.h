@@ -6,6 +6,8 @@
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
 #include <cmath>
+#include <random>
+#include <chrono>
 
 #ifndef COMMONFUNCTION_H_
 
@@ -30,6 +32,7 @@ static bool stop_game = false;
 static bool boss_dead_facing_right = true;
 static bool boss_dead_direction_locked = false;
 static bool end_game = false;
+static bool is_buff = false;
 
 extern bool is_fighting;
 
@@ -137,6 +140,15 @@ struct Boss
                       Uint32& LastTime, int& frame_ );
 
 };
+
+struct Gift {
+    SDL_Rect rect;
+    bool active = false;
+    Uint32 spawnTime;    // thoi diem vua xuat hien
+};
+
+const Uint32 GIFT_LIFETIME   = 5000; //thoi gian ton tai cua hop qua
+const Uint32 RESPAWN_DELAY   = 300; // thoi gian xuat hien lai
 
 void updateBullets(std::vector<Bullet>& bullets);
 void updateBullets_plane(std::vector<BulletofPlane>& bul_plane);

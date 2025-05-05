@@ -22,6 +22,25 @@ enum movement
     BOSS_RIGHT,
 };
 
+unsigned seed = std::chrono::steady_clock::now()
+                    .time_since_epoch()
+                    .count();
+static std::mt19937 rng_(seed);
+static std::uniform_int_distribution<int> dist(1, 3);
+
+std::mt19937 rng(SDL_GetTicks());
+std::uniform_int_distribution<int> distX(0, 1200  - 100);
+std::uniform_int_distribution<int> distY(300, 611 - 100);
+
+void spawnGift(Gift& gift) {
+    gift.rect.x = distX(rng);
+    gift.rect.y = distY(rng);
+    gift.rect.w = 100;
+    gift.rect.h = 100;
+    gift.active = true;
+    gift.spawnTime = SDL_GetTicks();
+}
+
 int main(int argc, char* argv[])
 {
     SDL_Init(SDL_INIT_VIDEO);
@@ -89,8 +108,10 @@ int main(int argc, char* argv[])
 
     //Menu
     SDL_Texture* Menu = LoadTex(g_screen, "img//Menu.png");
+    SDL_Texture* Teaching = LoadTex(g_screen, "img//teaching.png");
 
-    SDL_Rect Menu_dsrect = {425, 80, 360, 500};
+    SDL_Rect Menu_dsrect = {125, 80, 360, 500};
+    SDL_Rect Tech_dsrect = {485, 80, 640, 500};
 
     SDL_Texture* pause = LoadTex(g_screen, "img//pause.png");
     SDL_Rect pause_dsrect = {1135, 0, 65, 66};
@@ -181,15 +202,20 @@ int main(int argc, char* argv[])
     float playerKi = 0;
     int playerMaxKi = 1000;
     int stop_game_count = 0;
+    int buff = 0;
 
     SDL_Rect srect_ = {0, 0, 80, 98};
 
     SDL_Rect dsrect_ = {0, 238, 120, 120};
 
+    SDL_Texture* stronger = LoadTex(g_screen, "img//buff.png");
+
+    SDL_Rect buff_dsrect= {0, 0, 30, 46};
+
     //kamehameha
     SDL_Rect kame_srect_ = {0, 0, 57, 90};
 
-    SDL_Rect kame_dsrect_ = {0, 0, 150, 150};
+    SDL_Rect kame_dsrect_ = {0, 0, 300, 300};
 
     SDL_Rect chuong_srect_ = {0, 0, 180, 66};
 
@@ -233,6 +259,14 @@ int main(int argc, char* argv[])
     Uint32 boss_hit_time = SDL_GetTicks();
     Uint32 main_hit_time = SDL_GetTicks();
     Uint32 boss_time_skill = SDL_GetTicks();
+    Uint32 start_buff = 0;
+
+    // gift
+    SDL_Texture* gift_tex = LoadTex(g_screen, "img//mystery_box.png");
+
+    Gift gift;
+    Uint32 lastDespawnTime = SDL_GetTicks();
+    gift.active = false;
 
     // bo dem thoi gian
     int Timecount = 300;
@@ -288,6 +322,25 @@ int main(int argc, char* argv[])
     int count_bossdie = 0;
     bool boss2_2_dead_direction_locked = false;
     bool boss2_3_dead_direction_locked = false;
+
+    //
+    int upperHalfBossHeight_1 = boss2_3_dsrect.h / 2;
+    SDL_Rect upperHalfBoss_1 = {
+        boss2_3_dsrect.x,
+        550,
+        boss2_3_dsrect.w,
+        upperHalfBossHeight_1
+    };
+
+    //
+    int upperHalfBossY_2 = boss2_2_dsrect.y;
+    int upperHalfBossHeight_2 = boss2_2_dsrect.h / 2;
+    SDL_Rect upperHalfBoss_2 = {
+        boss2_2_dsrect.x,
+        upperHalfBossY_2,
+        boss2_2_dsrect.w,
+        upperHalfBossHeight_2
+    };
 
     // vong lap quan trong
     while (!is_quit)
@@ -402,6 +455,8 @@ int main(int argc, char* argv[])
     check_boss2 = false;
     playerKi = 0;
 
+    is_buff = false;
+
     restartTime += (Timecount - remaining) ;
 
     if (restartTime > Timecount) restartTime = Timecount ;
@@ -470,7 +525,7 @@ int main(int argc, char* argv[])
                                 LastTime = currentTime;
                             } // nhan vat danh
 
-                            std::cout << "frame_right" << frame_right ;
+                            //std::cout << "frame_right" << frame_right ;
 
                             if (bossHealth != 0)
                             {
@@ -478,9 +533,9 @@ int main(int argc, char* argv[])
                                         is_hitting, status_, playerKi);
                             }
 
-                            if ((boss2_3_Health != 0) && (SDL_HasIntersection(&dsrect_, &boss2_3_dsrect)))
+                            if ((boss2_3_Health != 0) && (SDL_HasIntersection(&dsrect_, &upperHalfBoss_1)))
                             {
-                                boss2_3_Health -= 50;
+                                boss2_3_Health -= (50 + buff);
                             }
 
                             if (is_hitting)
@@ -488,7 +543,12 @@ int main(int argc, char* argv[])
                                 boss_hit_time = SDL_GetTicks();
                                 bossHealth -= 20;
 
-                                std::cout << "chuan";
+                                if (bossHealth < 0)
+                                {
+                                    bossHealth = 0;
+                                }
+
+                                //std::cout << "chuan";
                             }
                         }
                         else
@@ -511,7 +571,7 @@ int main(int argc, char* argv[])
                                 LastTime = currentTime;
                             }
 
-                            std::cout << "frame_left" << frame_right ;
+                            //std::cout << "frame_left" << frame_right ;
 
 
                             if (bossHealth != 0)
@@ -520,9 +580,9 @@ int main(int argc, char* argv[])
                                         is_hitting, status_, playerKi);
                             }
 
-                            if ((boss2_2_Health != 0) && (SDL_HasIntersection(&dsrect_, &boss2_2_dsrect)))
+                            if ((boss2_2_Health != 0) && (SDL_HasIntersection(&dsrect_, &upperHalfBoss_2)))
                             {
-                                boss2_2_Health -= 50;
+                                boss2_2_Health -= (buff + 50);
                             }
 
                             if (is_hitting)
@@ -530,7 +590,12 @@ int main(int argc, char* argv[])
                                 boss_hit_time = SDL_GetTicks();
                                 bossHealth -= 20;
 
-                                std::cout << "chuan";
+                                if (bossHealth < 0)
+                                {
+                                    bossHealth = 0;
+                                }
+
+                                //std::cout << "chuan";
                             }
                         }
                         }
@@ -651,8 +716,9 @@ int main(int argc, char* argv[])
 
             afterTime = skipTime + (after - startTime - elapsed * 1000) / 1000;
 
-            std::cout << "thoi gian dung: " << afterTime << "           ";
+            //std::cout << "thoi gian dung: " << afterTime << "           ";
             SDL_RenderCopy(g_screen, Menu, NULL, &Menu_dsrect);
+            SDL_RenderCopy(g_screen, Teaching, NULL, &Tech_dsrect);
 
             SDL_RenderPresent(g_screen);
 
@@ -730,7 +796,7 @@ if ((!is_hitting) && (bossHealth != 0)){
 
                     //status_ = WALK_LEFT;
 
-                    std::cout << "lan 2" ;
+                    //std::cout << "lan 2" ;
                 }
 
             if (dsrect_.x < boss_dsrect_.x)
@@ -740,7 +806,7 @@ if ((!is_hitting) && (bossHealth != 0)){
 
                     //status_ = WALK_RIGHT;
 
-                    std::cout << "lan 1" ;
+                    //std::cout << "lan 1" ;
                 }
         }
         else
@@ -789,7 +855,7 @@ if ((!is_hitting) && (bossHealth != 0)){
             boss_time_skill = SDL_GetTicks();
             playerHealth -= 50;
 
-            std::cout << "capnhat";
+            //std::cout << "capnhat";
 
             countt = 0;
 
@@ -850,7 +916,7 @@ if ((is_skilling) && (bossHealth != 0))
                             dsrect_, boss_skill_dsrect, skill_pos_set, tex_main, bidanhphai, bidanhtrai,
                             boss_dsrect_, tex_main_left, tex_main_right, playerHealth);
 
-            std::cout << "frame_: " << skill_frame_ << " | is_skilling: " << is_skilling << std::endl;
+            //std::cout << "frame_: " << skill_frame_ << " | is_skilling: " << is_skilling << std::endl;
 
             SDL_RenderCopy(g_screen, chieucuoi, &boss_skill_rect, &boss_skill_dsrect);
 
@@ -1136,6 +1202,88 @@ if (bossHealth != 0)
 
             stop_game_count++;
         }
+
+        Uint32 now_gift_time = SDL_GetTicks();
+
+        if (!gift.active)
+        {
+            if (now_gift_time - lastDespawnTime >= RESPAWN_DELAY)
+            {
+                spawnGift(gift);
+            }
+        }
+        else
+        {
+            if(SDL_HasIntersection(&dsrect_, &gift.rect))
+            {
+                gift.active = false;
+                lastDespawnTime = now_gift_time;
+
+                int randomNumber = dist(rng_);
+
+                if (randomNumber == 1)
+                {
+                    playerHealth -= 150;
+                    buff = 0;
+
+                    is_buff = false;
+
+                    if (playerHealth < 0)
+                    {
+                        playerHealth = 0;
+                    }
+                }
+                else if (randomNumber == 2)
+                {
+                    playerHealth += 100;
+                    buff = 0;
+
+                    is_buff = false;
+
+                    if (playerHealth > playerMaxHealth)
+                    {
+                        playerHealth = playerMaxHealth;
+                    }
+                }
+                else
+                {
+                    buff += 50;
+
+                    is_buff = true;
+
+                    Uint32 ex_start_buff = SDL_GetTicks();
+                    start_buff = ex_start_buff;
+
+                    std::cout<<"ok";
+                }
+
+            }
+            else if (now_gift_time - gift.spawnTime >= GIFT_LIFETIME)
+            {
+                gift.active = false;
+                lastDespawnTime = now_gift_time;
+            }
+            else
+            {
+                SDL_RenderCopy(g_screen, gift_tex, NULL, &gift.rect);
+            }
+        }
+
+        if (is_buff)
+            {
+                buff_dsrect.x = dsrect_.x + 5;
+                buff_dsrect.y = dsrect_.y - 60;
+
+                Uint32 end_buff = SDL_GetTicks();
+
+                if (end_buff - start_buff >= 5000)
+                {
+                    is_buff = false;
+                }
+
+                std::cout << "chuan";
+                SDL_RenderCopy(g_screen, stronger, NULL, &buff_dsrect);
+            }
 
         SDL_RenderCopy(g_screen, pause, NULL, &pause_dsrect);
         SDL_RenderPresent(g_screen);

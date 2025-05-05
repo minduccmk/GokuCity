@@ -340,7 +340,7 @@ void checkBullet(std::vector<Bullet>& bullets, const SDL_Rect& srect_,
                     {
                         tex_main = bidanhphai;
                         SDL_Log("Chọn bidanhphai");
-                        std::cout << "danh";
+                        //std::cout << "danh";
                     }
 
                 playerHealth -= 30;
@@ -381,7 +381,7 @@ void checkBulletofPlane(std::vector<BulletofPlane>& bul_plane, const SDL_Rect& s
                     {
                         tex_main = bidanhphai;
                         SDL_Log("Chọn bidanhphai");
-                        std::cout << "danh";
+                        //std::cout << "danh";
                     }
 
                 if (bossHealth != 0)
@@ -453,7 +453,7 @@ void Kamehameha(SDL_Rect& kame_rect_, bool& is_kame_,
 
                     bossHealth -= 2;
 
-                    if (bossHealth != 0)
+                    if (bossHealth > 0)
                     {
                         SDL_RenderCopy(screen, tex_boss_main, NULL, &boss_dsrect);
                     }
